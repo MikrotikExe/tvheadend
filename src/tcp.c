@@ -1133,7 +1133,10 @@ tcp_server_connections ( void )
   /* Build list */
   l = htsmsg_create_list();
   LIST_FOREACH(tsl, &tcp_server_launches, link) {
-    if (!tsl->status) continue;
+    /* the opaque pointer may be already invalidated by the connection
+     * thread (see *opaque = NULL in http_serve()) while the launch entry
+     * is still linked here - do not call the status callback for it */
+    if (!tsl->status || !tsl->opaque) continue;
     c++;
     e = htsmsg_create_map();
     htsmsg_add_u32(e, "id", tsl->id);
@@ -1167,7 +1170,7 @@ tcp_server_connections_count ( void )
   
   /* Count connections */
   LIST_FOREACH(tsl, &tcp_server_launches, link) {
-    if (!tsl->status) continue;
+    if (!tsl->status || !tsl->opaque) continue;
     c++;
   }
 
