@@ -1458,8 +1458,10 @@ http_stream_mux(http_connection_t *hc, mpegts_mux_t *mm, int weight)
         pids.all = 1;
       } else {
         i = atoi(p);
-        if (i < 0 || i > 8192)
+        if (i < 0 || i > 8192) {
+          http_stream_postop(tcp_id);
           return HTTP_STATUS_BAD_REQUEST;
+        }
         if (i == 8192)
           pids.all = 1;
         else
@@ -1467,8 +1469,10 @@ http_stream_mux(http_connection_t *hc, mpegts_mux_t *mm, int weight)
       }
       p = strtok_r(NULL, ",", &saveptr);
     }
-    if (!pids.all && pids.count <= 0)
+    if (!pids.all && pids.count <= 0) {
+      http_stream_postop(tcp_id);
       return HTTP_STATUS_BAD_REQUEST;
+    }
   } else {
     pids.all = 1;
   }
