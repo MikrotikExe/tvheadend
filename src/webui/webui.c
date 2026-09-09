@@ -344,8 +344,6 @@ http_stream_status ( void *opaque, htsmsg_t *m )
   const char *username;
 
   htsmsg_add_str(m, "type", "HTTP");
-  if (hc == NULL)
-    return;
   if (hc->hc_proxy_ip) {
     tcp_get_str_from_ip(hc->hc_proxy_ip, buf, sizeof(buf));
     htsmsg_add_str(m, "proxy", buf);

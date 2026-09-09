@@ -538,6 +538,7 @@ static LIST_HEAD(, tcp_server) tcp_server_delete_list = { 0 };
 static LIST_HEAD(, tcp_server_launch) tcp_server_launches = { 0 };
 static LIST_HEAD(, tcp_server_launch) tcp_server_active = { 0 };
 static LIST_HEAD(, tcp_server_launch) tcp_server_join = { 0 };
+static tvhlog_limit_t tcp_launch_loglimit = { .last = 0, .count = 0 };
 
 /**
  *
@@ -1133,10 +1134,17 @@ tcp_server_connections ( void )
   /* Build list */
   l = htsmsg_create_list();
   LIST_FOREACH(tsl, &tcp_server_launches, link) {
-    /* the opaque pointer may be already invalidated by the connection
-     * thread (see *opaque = NULL in http_serve()) while the launch entry
-     * is still linked here - do not call the status callback for it */
-    if (!tsl->status || !tsl->opaque) continue;
+    if (!tsl->status) continue;
+    /* A launch entry must be unlinked by tcp_connection_land() before its
+     * connection thread finishes. One that is still linked without an
+     * opaque pointer has leaked, and the memory behind it may already be
+     * freed - report it rather than dereferencing it. */
+    if (!tsl->opaque) {
+      if (tvhlog_limit(&tcp_launch_loglimit, 10))
+        tvherror(LS_TCP, "connection %u is still linked without an opaque "
+                         "pointer - tcp_connection_land() was missed", tsl->id);
+      continue;
+    }
     c++;
     e = htsmsg_create_map();
     htsmsg_add_u32(e, "id", tsl->id);

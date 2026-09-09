@@ -3353,8 +3353,6 @@ htsp_server_status ( void *opaque, htsmsg_t *m )
   access_t *aa;
   char buf[128];
   htsmsg_add_str(m, "type", "HTSP");
-  if (htsp == NULL)
-    return;
   if (htsp->htsp_username) {
     aa = htsp->htsp_granted_access;
     if (!strcmp(htsp->htsp_username, aa->aa_username ?: ""))
