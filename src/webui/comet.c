@@ -48,6 +48,8 @@ static int comet_waiting;
  */
 #define MAILBOX_STALE_TIMEOUT       60
 
+static tvhlog_limit_t comet_stale_loglimit = { .last = 0, .count = 0 };
+
 //#define mbdebug(fmt...) printf(fmt);
 #define mbdebug(fmt...)
 
@@ -613,6 +615,15 @@ comet_mailbox_add_message(htsmsg_t *m, int isdebug, int isrestricted, int rewrit
          has piled up, it is stale and the UI only wants current state */
       if(cmb->cmb_messages != NULL &&
          cmb->cmb_last_taken + sec2mono(MAILBOX_STALE_TIMEOUT) < mclk()) {
+        htsmsg_field_t *cf;
+        int cnt = 0;
+        HTSMSG_FOREACH(cf, cmb->cmb_messages)
+          cnt++;
+        if (tvhlog_limit(&comet_stale_loglimit, 30))
+          tvherror(LS_WEBUI, "comet: dropped %d messages queued for %d seconds "
+                             "without being collected (mailbox %.8s)",
+                   cnt, (int)mono2sec(mclk() - cmb->cmb_last_taken),
+                   cmb->cmb_boxid);
         htsmsg_destroy(cmb->cmb_messages);
         cmb->cmb_messages = NULL;
         cmb->cmb_last_taken = mclk();
