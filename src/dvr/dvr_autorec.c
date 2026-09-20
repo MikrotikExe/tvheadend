@@ -125,10 +125,11 @@ dvr_autorec_entry_can_be_purged(const dvr_entry_t *de)
 void
 dvr_autorec_purge_obsolete_timers(void)
 {
-  dvr_entry_t *de;
+  dvr_entry_t *de, *de_next;
   int num_purged = 0;
 
-  LIST_FOREACH(de, &dvrentries, de_global_link) {
+  for (de = LIST_FIRST(&dvrentries); de != NULL; de = de_next) {
+    de_next = LIST_NEXT(de, de_global_link);
     if (dvr_autorec_entry_can_be_purged(de)) {
       char ubuf[UUID_HEX_SIZE];
       char t1buf[32], t2buf[32];
