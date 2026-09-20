@@ -1732,6 +1732,8 @@ rtsp_stream_status ( void *opaque, htsmsg_t *m )
   int udpport, s32;
 
   htsmsg_add_str(m, "type", "SAT>IP");
+  if (hc == NULL)
+    return;
   if (hc->hc_proxy_ip) {
     tcp_get_str_from_ip(hc->hc_proxy_ip, buf, sizeof(buf));
     htsmsg_add_str(m, "proxy", buf);
