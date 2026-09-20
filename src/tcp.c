@@ -620,16 +620,6 @@ try_again:
     }
   }
 
-  if (res->status) {
-    /* already linked: the caller launched twice without landing */
-    if (tvhlog_limit(&tcp_launch_loglimit, 10))
-      tvherror(LS_TCP, "connection %u launched twice without "
-                       "tcp_connection_land() (%s)", res->id,
-               res->representative ?: "");
-    LIST_REMOVE(res, link);
-    free(res->representative);
-  }
-
   res->representative = aa->aa_representative ? strdup(aa->aa_representative) : NULL;
   res->status = status;
   res->streaming = streaming;
@@ -652,7 +642,6 @@ tcp_connection_land(void *tcp_id)
     return;
 
   LIST_REMOVE(tsl, link);
-  tsl->status = NULL;
   notify_reload("connections");
 
   free(tsl->representative);
@@ -737,22 +726,6 @@ tcp_server_start(void *aux)
 
   /* Stop */
   if (tsl->ops.stop) tsl->ops.stop(tsl->opaque);
-
-  /*
-   * The entry is about to be freed.  If it is still linked in
-   * tcp_server_launches the connection handler missed a
-   * tcp_connection_land(); unlink it here so the status API cannot
-   * walk into freed memory, and say so, because that is the bug.
-   */
-  if (tsl->status) {
-    if (tvhlog_limit(&tcp_launch_loglimit, 10))
-      tvherror(LS_TCP, "connection %u ended while still linked in the "
-                       "launch list (%s%s) - tcp_connection_land() was missed",
-               tsl->id, tsl->representative ?: "",
-               tsl->streaming ? ", streaming" : "");
-    tcp_connection_land(tsl);
-  }
-
   LIST_REMOVE(tsl, alink);
   LIST_INSERT_HEAD(&tcp_server_join, tsl, jlink);
   tvh_mutex_unlock(&global_lock);
